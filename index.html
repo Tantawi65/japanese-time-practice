@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Japanese Time Practice</title>
 
-  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
@@ -19,7 +18,6 @@
   <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full" id="app">
     <div class="text-center mb-8">
       <div class="flex items-center justify-center gap-2 mb-2">
-        <!-- Clock SVG -->
         <svg class="icon text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden>
           <circle cx="12" cy="12" r="9"></circle>
           <path d="M12 7v5l3 3"></path>
@@ -39,7 +37,7 @@
     <div id="formArea" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Your answer (romaji):</label>
-        <input id="answerInput" type="text" placeholder="e.g., goji" autofocus
+        <input id="answerInput" type="text" placeholder="e.g., goji gofun" autofocus
                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       </div>
       <button id="checkBtn"
@@ -52,7 +50,6 @@
     <div id="resultArea" class="hidden space-y-4">
       <div id="resultBox" class="p-4 rounded-lg bg-green-50 border-2 border-green-500">
         <div class="flex items-center gap-2 mb-2">
-          <!-- Placeholder for dynamic icon -->
           <span id="resultIcon"></span>
           <span id="resultText" class="font-bold text-green-800 text-lg">Correct!</span>
         </div>
@@ -63,7 +60,6 @@
       </div>
 
       <button id="nextBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-        <!-- Refresh SVG -->
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"></polyline>
           <polyline points="1 20 1 14 7 14"></polyline>
@@ -79,10 +75,16 @@
         <span>Quick Reference</span>
         <span id="refSign" class="text-lg">+</span>
       </button>
+      
       <div id="reference" class="text-xs text-gray-600 space-y-1 mt-2 hidden">
         <p>• Hours: ichiji (1), niji (2), sanji (3), yoji (4), goji (5), rokuji (6)</p>
         <p>• shichiji (7), hachiji (8), kuji (9), juuji (10), juuichiji (11), juuniji (12)</p>
-        <p>• Half past: add "han" (e.g., "goji han" = 5:30)</p>
+        <p>• <strong>Minutes (fun/pun):</strong></p>
+        <p>• 5: gofun, 10: juppun, 15: juugofun</p>
+        <p>• 20: nijuppun, 25: nijuugofun</p>
+        <p>• 30: sanjuppun (or <strong>han</strong>)</p>
+        <p>• 35: sanjuugofun, 40: yonjuppun</p>
+        <p>• 45: yonjuugofun, 50: gojuppun, 55: gojuugofun</p>
       </div>
     </div>
   </div>
@@ -92,6 +94,22 @@
       // Hours array matches the React component order (0 = reiji, 1 = ichiji, ...)
       const hours = ['juuniji', 'ichiji', 'niji', 'sanji', 'yoji', 'goji', 'rokuji',
                'shichiji', 'hachiji', 'kuji', 'juuji', 'juuichiji'];
+      
+      const minutes = {
+        0: '',
+        5: 'gofun',
+        10: 'juppun',
+        15: 'juugofun',
+        20: 'nijuppun',
+        25: 'nijuugofun',
+        30: 'sanjuppun',
+        35: 'sanjuugofun',
+        40: 'yonjuppun',
+        45: 'yonjuugofun',
+        50: 'gojuppun',
+        55: 'gojuugofun'
+      };
+      const minuteValues = Object.keys(minutes).map(Number);
 
       // DOM elements
       const displayTime = document.getElementById('displayTime');
@@ -121,14 +139,19 @@
 
       function generateTime() {
         const hour = Math.floor(Math.random() * 12); // 0-11
-        const minute = Math.random() < 0.5 ? 0 : 30;
+        const randomIndex = Math.floor(Math.random() * minuteValues.length);
+        const minute = minuteValues[randomIndex];
+        
         current = { hour, minute };
         displayTime.textContent = formatTime(hour, minute);
 
         // prepare correct answer
         let ans = hours[hour];
-        if (minute === 30) ans += ' han';
-        correctAnswer = ans;
+        const minuteString = minutes[minute];
+        if (minuteString) {
+          ans += ' ' + minuteString;
+        }
+        correctAnswer = ans; // This will be the 'sanjuppun' version
 
         // reset UI
         answerInput.value = '';
@@ -142,14 +165,26 @@
         return String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
       }
 
+      // EDITED: This function now checks for 'han' as well
       function checkAnswer() {
         const user = normalize(answerInput.value);
         const correct = normalize(correctAnswer);
-        const isCorrect = user === correct;
+        let isCorrect = (user === correct);
+        let displayCorrect = correctAnswer; // Default display answer
+
+        // Special check for 30 minutes to also allow 'han'
+        if (current.minute === 30) {
+          const hanAnswer = normalize(hours[current.hour] + ' han');
+          if (user === hanAnswer) {
+            isCorrect = true;
+          }
+          // Always show both options for 30 minutes
+          displayCorrect = correctAnswer + ' / ' + hours[current.hour] + ' han';
+        }
 
         // set result UI
         userAnsText.textContent = answerInput.value || '—';
-        correctAnsText.textContent = correctAnswer;
+        correctAnsText.textContent = displayCorrect; // Use the (potentially modified) display answer
 
         if (isCorrect) {
           resultBox.className = 'p-4 rounded-lg bg-green-50 border-2 border-green-500';
